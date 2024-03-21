@@ -1,0 +1,84 @@
+python manage.py runserver - запустить сервер
+http://127.0.0.1:8000/cats/1/?name=Gagarina&type=pop - пример GET-запроса
+if int(year) > 2020:
+        return redirect('/', permanent=True) - делаем перенаправление на другую стр, если permanent=True, то редирект постоянный (301). Иначе временный (302)
+
+
+Основы ORM 
+Musicians.objects.all()[:5] - первые пять записей
+
+from django.db import connection
+connection.queries   - обратиться к уровню sql-запросов
+
+Musicians.objects.order_by('pk') - сортировка по первичному ключу
+Musicians.objects.order_by('-pk') - то же, но в обратном порядке
+
+Musicians.objects.all().reverse() - обратный порядок
+
+Musicians.objects.filter(pk__lte=2) - записи, у которых первичный ключ меньше равен 2
+
+Musicians.objects.get(pk=2) - возвращает одну запись по уникальному значению
+
+
+w.title, ..., w.is_published - значения полей из таблицы Musicians
+w.pk, w.id - идентификаторы записи (первичный ключ)
+w.cat_id - идентификатор рубрики (внешний ключ)
+w.cat - объект класса Category, хранящий данные записи с id=cat_id
+
+c = Category.objects.get(pk=1)
+c.musicians_set.all() - выбираем всех исполнителей в жанре рок
+
+
+<atr name>_gte - сравнение больше или равно
+<atr name>_lte> - сравнение меньше или равно
+
+Musicians.objects.filter(title__contains='ми') - ли встречается в названии
+Musicians.objects.filter(title__icontains='ми') - то же, но без учёта регистра (но не работает с кириллицей)
+
+Musicians.objects.filter(pk__in=[2,5,11,12]) - первичный ключ один из списка
+Musicians.objects.filter(pk__in=[1,5,11,12], is_published=True)  - сразу по двум условиям
+Musicians.objects.filter(cat__in=[2,5,11,12]) - то же, но по внешнему ключу
+
+from django.db.models import Q
+Musicians.objects.filter(Q(pk__lt=5) | Q(cat_id=2)) - применение логического ИЛИ 
+& - И
+~ - не
+
+Musicians.objects.first() - первая запись в таблице
+Musicians.objects.last() - последняя запись в таблице
+
+Musicians.objects.latest('time_update') - самая первая запись по времени
+Musicians.objects.earliest('time_update') - самая последняя запись по времени
+
+m = Musicians.objects.get(pk=3)
+m.get_previous_by_time_update() - получаем предыдущую запись, относительного которой был вызван метод
+m.get_next_by_time_update() - получаем следующую запись, относительного которой был вызван метод
+
+c3 = Category.objects.get(pk=3)
+c3.musicians_set.exists() - возвращает False, если в таблице музыкантов нет записей, связанных с 3 записью из таблицы категорий
+
+c2 = Category.objects.get(pk=2)
+c2.musicians_set.count() - кол-во записей в таблице музыкантов, связанных со второй записью таблицы категорий
+
+Musicians.objects.filter(cat__name__contains='о') - берём музыкантов, у которых в категории есть буква о 
+
+Функции агрегации
+from django.db.models import *
+Musicians.objects.aggregate(Min('cat_id'), Max('cat_id')) - минимум и максимум
+Avg() - среднее арифметическое
+
+Musicians.objects.values('title', 'cat_id').get(pk=1) - получили определённую запись, ограничив кол-во полей
+
+Musicians.objects.values('title', 'cat__name').get(pk=1)
+
+Musicians.objects.values('cat_id').annotate(Count('id'))
+SELECT count(id) FROM Musicians GROUP BY cat_id
+
+from django.db.models.functions import Length
+ps = Musicians.objects.annotate(len=Length('title')) - находим длину строки
+for item in ps:
+     print(item.title, item.len)
+
+
+Musicians.objects.raw('SELECT * FROM musicians_musicians') - SQL-запрос
+
